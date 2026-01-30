@@ -1,323 +1,378 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="ja">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>flow - Simple task recorder designed for focus.</title>
-    <meta name="description" content="Simple task recorder designed for focus 'flow'. No complexity. Just flow.">
-    <meta property="og:title" content="flow - Keep your flow.">
-    <meta property="og:description" content="Simple task recorder designed for focus. Keep your flow.">
-    <meta property="og:image" content="feature.png">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder">
-    <meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" href="logo.png" type="image/png">
+    <title>flow - Dive into Deep Focus</title>
+    <meta name="description" content="エンジニアのための没入型タスク管理アプリ。ダークモード、環境音、ヒートマップ搭載。">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    colors: {
+                        deep: {
+                            900: '#121212', // アプリ背景に近い黒
+                            800: '#1E1E1E',
+                            700: '#2C2C2C',
+                        },
+                        cyan: {
+                            400: '#26C6DA', // アプリのアクセントカラー
+                            500: '#00BCD4',
+                        }
+                    },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                     },
-                    colors: {
-                        // アプリのアクセントカラーから抽出
-                        'brand-teal': '#6BC5B3',
-                        'brand-teal-dark': '#57a394',
-                        // 背景色パレット
-                        'dark-bg-main': '#0F172A', // 深いミッドナイトブルー
-                        'dark-bg-sub': '#1E293B',  // 少し明るいセクション用
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'bubble': 'bubble 10s linear infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        bubble: {
+                            '0%': { transform: 'translateY(100vh) scale(0)', opacity: '0' },
+                            '50%': { opacity: '0.5' },
+                            '100%': { transform: 'translateY(-10vh) scale(1)', opacity: '0' },
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* ヒーローセクションの背景グラデーションと流体イメージ */
-        .hero-bg {
-            background: linear-gradient(to bottom right, #0F172A, #1E293B);
-            position: relative;
-            overflow: hidden;
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            overflow-x: hidden;
         }
 
-        /* オーロラのような流体グラフィックの疑似要素（簡易的な表現） */
-        .hero-bg::before {
-            content: '';
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #121212;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #26C6DA;
+        }
+
+        /* 背景の泡アニメーション用 */
+        .bubble {
             position: absolute;
-            top: -20%;
-            right: -20%;
-            width: 80%;
-            height: 80%;
-            background: radial-gradient(circle, rgba(107, 197, 179, 0.2) 0%, transparent 70%);
-            filter: blur(80px);
-            z-index: 0;
-            opacity: 0.7;
-        }
-
-        /* スマホ画像のモックアップ風スタイル */
-        .phone-mockup {
-            /* iPhone風の角丸と影 */
-            border-radius: 2.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            border: 8px solid #334155;
-            /* ダークグレーのベゼル */
-            overflow: hidden;
+            background: rgba(38, 198, 218, 0.1);
+            border-radius: 50%;
         }
     </style>
 </head>
 
-<body class="bg-dark-bg-main text-slate-300 font-sans leading-relaxed antialiased">
+<body class="antialiased selection:bg-cyan-400 selection:text-deep-900">
 
-    <header
-        class="w-full py-6 px-4 sm:px-8 lg:px-16 flex justify-between items-center fixed top-0 z-50 bg-dark-bg-main/80 backdrop-blur-md border-b border-slate-800">
-        <div class="flex items-center gap-2">
-            <img src="logo.png" alt="flow logo" class="h-8 w-auto rounded-md">
-            <span class="text-xl font-bold text-white tracking-tight">flow</span>
+    <!-- 背景エフェクト (深海の泡) -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-500/10 rounded-full blur-[120px]"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-cyan-500/5 rounded-full blur-[100px]">
         </div>
-        <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder"
-            class="bg-brand-teal hover:bg-brand-teal-dark text-slate-900 font-bold py-2 px-6 rounded-full transition-colors duration-300 text-sm sm:text-base">
-            Google Play
-        </a>
+        <!-- 泡 (JSで生成も可能だが今回はCSSクラスで簡易配置) -->
+        <div class="bubble w-4 h-4 left-[10%] animation-delay-2000 animate-bubble" style="animation-duration: 8s;">
+        </div>
+        <div class="bubble w-8 h-8 left-[20%] animation-delay-4000 animate-bubble" style="animation-duration: 12s;">
+        </div>
+        <div class="bubble w-6 h-6 left-[70%] animation-delay-1000 animate-bubble" style="animation-duration: 10s;">
+        </div>
+        <div class="bubble w-3 h-3 left-[85%] animation-delay-5000 animate-bubble" style="animation-duration: 15s;">
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed w-full z-50 bg-deep-900/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <!-- ロゴプレースホルダー -->
+                <img src="logo.png" alt="Logo" class="w-8 h-8">
+                <span class="text-xl font-bold tracking-tight">flow</span>
+            </div>
+            <nav class="hidden md:flex gap-8 text-sm text-gray-400 font-medium">
+                <a href="#features" class="hover:text-cyan-400 transition-colors">Features</a>
+                <a href="#reviews" class="hover:text-cyan-400 transition-colors">Reviews</a>
+            </nav>
+            <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder" target="_blank"
+                class="px-5 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-full transition-all border border-white/10 flex items-center gap-2">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path
+                        d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.36,13.08L18.92,12.25L17.5,13.65L17.53,13.66L17.5,13.65L15.22,11.37L17.54,9.04L18.92,9.85C19.7,10.29 20.24,10.96 20.36,11.75C20.39,12.24 20.21,12.7 19.86,13.05C19.86,13.05 20.36,13.08 20.36,13.08M16.81,8.88L14.54,11.15L6.05,2.66L16.81,8.88Z" />
+                </svg>
+                Google Play
+            </a>
+        </div>
     </header>
 
-    <section class="hero-bg min-h-screen flex items-center pt-24 pb-16 px-4 sm:px-8 lg:px-16">
-        <div class="container mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
-            <div class="text-center lg:text-left order-2 lg:order-1 animate-fade-in-up">
-                <h1
-                    class="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight mb-6 leading-tight">
-                    Keep your <span class="text-brand-teal">flow.</span>
+    <!-- Hero Section -->
+    <section class="relative z-10 pt-32 pb-20 md:pt-48 md:pb-32 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12">
+
+            <!-- Text Content -->
+            <div class="flex-1 text-center md:text-left space-y-8">
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-400/10 border border-cyan-400/20 text-cyan-400 text-xs font-semibold tracking-wide uppercase">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                    v3.0 Major Update
+                </div>
+                <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight">
+                    Dive into <br>
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-white">Deep
+                        Focus.</span>
                 </h1>
-                <p class="text-xl text-slate-400 mb-8 max-w-lg mx-auto lg:mx-0">
-                    Calculated minimalism for your tasks.<br>
-                    No complexity. No distractions. Just focus.
+                <p class="text-lg md:text-xl text-gray-400 max-w-lg mx-auto md:mx-0 leading-relaxed">
+                    Designed for immersion. <br>
+                    Dark mode, ambient sounds, and heatmaps.<br>
+                    Your personal space to get into the flow.
                 </p>
-                <div class="flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
-                    <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder"
-                        class="flex items-center justify-center gap-2 bg-slate-800 text-white font-bold py-3 px-8 rounded-lg hover:bg-slate-700 transition shadow-lg border border-slate-700">
-                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+                    <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder" target="_blank"
+                        class="w-full sm:w-auto px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-deep-900 font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(38,198,218,0.3)] hover:shadow-[0_0_30px_rgba(38,198,218,0.5)] flex items-center justify-center gap-3">
+                        <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
                             <path
-                                d="M3,20.5V3.5C3,2.91,3.34,2.39,3.84,2.15L13.69,12L3.84,21.85C3.34,21.6,3,21.09,3,20.5 M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12 M21.83,12.5C22.21,12.28,22.21,11.72,21.83,11.5L18.43,9.53L15.39,12L18.43,14.47L21.83,12.5 M16.81,8.88L14.54,11.15L6.05,2.66L16.81,8.88z" />
+                                d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.36,13.08L18.92,12.25L17.5,13.65L17.53,13.66L17.5,13.65L15.22,11.37L17.54,9.04L18.92,9.85C19.7,10.29 20.24,10.96 20.36,11.75C20.39,12.24 20.21,12.7 19.86,13.05C19.86,13.05 20.36,13.08 20.36,13.08M16.81,8.88L14.54,11.15L6.05,2.66L16.81,8.88Z" />
                         </svg>
-                        Google Play
+                        Get on Google Play
                     </a>
                 </div>
             </div>
-            <div class="order-1 lg:order-2 flex justify-center relative z-10 animate-float">
+
+            <!-- App Mockup -->
+            <div class="flex-1 relative flex justify-center">
+                <!-- 光の演出 -->
+                <div class="absolute inset-0 bg-cyan-500/20 blur-[80px] rounded-full transform scale-75"></div>
+
+                <!-- スマホ枠 -->
                 <div
-                    class="phone-mockup max-w-[300px] sm:max-w-[350px] lg:max-w-[400px] rotate-[-6deg] hover:rotate-0 transition-transform duration-500">
-                    <img src="progress_screen.png" alt="flow app timer screen" class="w-full h-auto block bg-white">
+                    class="relative w-[300px] h-[600px] bg-deep-900 rounded-[3rem] border-8 border-gray-800 shadow-2xl overflow-hidden animate-float">
+                    <!-- 画面キャプチャ配置エリア -->
+                    <!-- TODO: ここに image_d7bae0.jpg (Timer画面) を入れてください -->
+                    <img src="timer.png" alt="flow Timer Screen" class="w-full h-full object-cover opacity-90">
+
+                    <!-- 画面上のGlow演出 -->
+                    <div
+                        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-cyan-400/20 blur-[50px] rounded-full pointer-events-none">
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="features" class="py-24 px-4 sm:px-8 lg:px-16 bg-dark-bg-sub">
-        <div class="container mx-auto max-w-6xl">
+    <!-- Features Section -->
+    <section id="features" class="py-24 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
             <div class="text-center mb-20">
-                <h2 class="text-xs text-brand-teal font-bold uppercase tracking-widest mb-4">Features</h2>
-                <p class="text-3xl sm:text-4xl font-bold text-white">Simplicity perfected. 3 Core Features.</p>
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Calculated Minimalism.</h2>
+                <p class="text-gray-400">No complexity. No distractions. Just deep focus.</p>
             </div>
 
-            <div class="flex flex-col md:flex-row items-center gap-12 lg:gap-24 mb-24 md:mb-32">
-                <div class="md:w-1/2 space-y-6 order-2 md:order-1">
-                    <div class="bg-slate-800 w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-                        <svg class="w-6 h-6 text-brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Feature 1: Visualize Effort (Left Image) -->
+            <div class="flex flex-col md:flex-row items-center gap-16 mb-24">
+                <div class="flex-1 relative group">
+                    <div
+                        class="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700">
+                    </div>
+                    <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-deep-800 shadow-2xl">
+                        <!-- TODO: ここに image_d7b7b8.png (Heatmap画面) を入れてください -->
+                        <img src="heatmap.png" alt="Heatmap" class="w-full object-cover">
+                    </div>
+                </div>
+                <div class="flex-1 space-y-6">
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-3xl font-bold">Visualize Your Effort.</h3>
+                    <p class="text-gray-400 text-lg leading-relaxed">
+                        Your daily focus is visualized with a beautiful <strong>Heatmap</strong>.
+                        Watching your streaks grow keeps you motivated like never before.
+                        Turn your effort into a visible "flow".
+                    </p>
+                </div>
+            </div>
+
+            <!-- Feature 2: Immersive Sound (Right Image) -->
+            <div class="flex flex-col md:flex-row-reverse items-center gap-16 mb-24">
+                <div class="flex-1 relative group">
+                    <div
+                        class="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700">
+                    </div>
+                    <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-deep-800 shadow-2xl">
+                        <!-- TODO: ここに image_d7b794.png (Tuning Room画面) を入れてください -->
+                        <img src="sound.png" alt="Ambient Sound" class="w-full object-cover">
+                    </div>
+                </div>
+                <div class="flex-1 space-y-6">
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-3xl font-bold">Immersive Sound.</h3>
+                    <p class="text-gray-400 text-lg leading-relaxed">
+                        Toggle the <strong>"Deep Ocean"</strong> ambient sound to instantly block out distractions.
+                        The Dark Mode UI and underwater sounds create your personal sanctuary for deep work.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Feature 3: Smart Input (Left Image) -->
+            <div class="flex flex-col md:flex-row items-center gap-16">
+                <div class="flex-1 relative group">
+                    <div
+                        class="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-green-500/20 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition duration-700">
+                    </div>
+                    <div class="relative rounded-3xl overflow-hidden border border-white/10 bg-deep-800 shadow-2xl">
+                        <!-- TODO: ここに image_d7bb54.png (Start画面) またはサジェストが出ているスクショを入れてください -->
+                        <img src="suggest.png" alt="Smart Input" class="w-full object-cover">
+                    </div>
+                </div>
+                <div class="flex-1 space-y-6">
+                    <div class="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl md:text-3xl font-bold text-white">Instant Focus<br><span
-                            class="text-slate-400 text-xl">Just open and type. Start instantly.</span></h3>
-                    <p class="text-slate-400 text-lg leading-relaxed">
-                        No complex setup or project creation needed.<br>Start tracking the moment you think of a task.
-                    </p>
-                </div>
-                <div class="md:w-1/2 flex justify-center order-1 md:order-2">
-                    <div class="phone-mockup max-w-[280px] sm:max-w-[320px] shadow-xl">
-                        <img src="task_input.png" alt="Simple task input screen" class="w-full h-auto block bg-white">
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex flex-col md:flex-row items-center gap-12 lg:gap-24 mb-24 md:mb-32">
-                <div class="md:w-1/2 flex justify-center order-1">
-                    <div class="phone-mockup max-w-[280px] sm:max-w-[320px] shadow-xl">
-                        <img src="history.png" alt="Task history showing time flow"
-                            class="w-full h-auto block bg-white">
-                    </div>
-                </div>
-                <div class="md:w-1/2 space-y-6 order-2">
-                    <div class="bg-slate-800 w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-                        <svg class="w-6 h-6 text-brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl md:text-3xl font-bold text-white">Visual Flow<br><span
-                            class="text-slate-400 text-xl">Your time, visualized beautifully.</span></h3>
-                    <p class="text-slate-400 text-lg leading-relaxed">
-                        From start to finish. Your duration is visualized with a flow arrow, making it intuitive to
-                        review your daily effort.
+                    <h3 class="text-3xl font-bold">Instant Focus.</h3>
+                    <p class="text-gray-400 text-lg leading-relaxed">
+                        Just open and type. <strong>Smart suggestions</strong> from your history let you start tracking
+                        in seconds.
+                        No complex project setup. Just flow.
                     </p>
                 </div>
             </div>
 
-            <div class="flex flex-col md:flex-row items-center gap-12 lg:gap-24">
-                <div class="md:w-1/2 space-y-6 order-2 md:order-1">
-                    <div class="bg-slate-800 w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
-                        <svg class="w-6 h-6 text-brand-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                            </path>
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl md:text-3xl font-bold text-white">Distraction Free<br><span
-                            class="text-slate-400 text-xl">Just you and your focus.</span></h3>
-                    <p class="text-slate-400 text-lg leading-relaxed">
-                        No notifications, no complex menus. An interface designed to let you immerse yourself in your
-                        work like flowing water.
-                    </p>
-                </div>
-                <div class="md:w-1/2 flex justify-center order-1 md:order-2 relative">
-                    <img src="history.png" alt=""
-                        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 opacity-10 blur-xl z-0">
-                    <div class="phone-mockup max-w-[280px] sm:max-w-[320px] shadow-xl relative z-10">
-                        <img src="edit.png" alt="Minimal timer screen" class="w-full h-auto block bg-white">
-                    </div>
-                </div>
-            </div>
         </div>
     </section>
 
-    <section class="py-24 px-4 sm:px-8 lg:px-16 bg-dark-bg-main relative overflow-hidden">
-        <div class="absolute -top-24 -left-24 w-96 h-96 bg-brand-teal opacity-5 rounded-full blur-3xl"></div>
-        <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-blue-500 opacity-5 rounded-full blur-3xl"></div>
+    <!-- Testimonials -->
+    <section id="reviews" class="py-24 bg-deep-800/30 relative z-10 border-y border-white/5">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16">Users love flow.</h2>
+            <div class="grid md:grid-cols-3 gap-8">
 
-        <div class="container mx-auto max-w-5xl relative z-10">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl sm:text-4xl font-bold text-white mb-4">Users love flow.</h2>
-                <p class="text-slate-400 text-lg">Chosen by those who value focus.</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Review 1 -->
                 <div
-                    class="bg-slate-800/50 backdrop-blur p-8 rounded-2xl border border-slate-700/50 hover:border-brand-teal/50 transition duration-300">
-                    <svg class="w-8 h-8 text-brand-teal mb-6 opacity-50" fill="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-4 3.638-4 5.849h4v10h-10z" />
-                    </svg>
-                    <p class="text-lg text-slate-200 mb-6">"Great for logging work in between coding sessions. Not
+                    class="p-8 rounded-2xl bg-deep-800 border border-white/5 hover:border-cyan-400/30 transition-colors">
+                    <div class="flex text-cyan-400 mb-4">
+                        ★★★★★
+                    </div>
+                    <p class="text-gray-300 mb-6 italic">"Great for logging work in between coding sessions. Not
                         breaking my flow is the best part."</p>
-                    <p class="font-bold text-brand-teal">Software Engineer</p>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold">
+                            SE</div>
+                        <div>
+                            <div class="font-bold text-sm">Software Engineer</div>
+                            <div class="text-xs text-gray-500">Google Play Review</div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Review 2 -->
                 <div
-                    class="bg-slate-800/50 backdrop-blur p-8 rounded-2xl border border-slate-700/50 hover:border-brand-teal/50 transition duration-300">
-                    <svg class="w-8 h-8 text-brand-teal mb-6 opacity-50" fill="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-4 3.638-4 5.849h4v10h-10z" />
-                    </svg>
-                    <p class="text-lg text-slate-200 mb-6">"I can manage my work hours while keeping my creative flow
-                        state intact."</p>
-                    <p class="font-bold text-brand-teal">Designer</p>
+                    class="p-8 rounded-2xl bg-deep-800 border border-white/5 hover:border-cyan-400/30 transition-colors">
+                    <div class="flex text-cyan-400 mb-4">
+                        ★★★★★
+                    </div>
+                    <p class="text-gray-300 mb-6 italic">"I can manage my work hours while keeping my creative flow
+                        state intact. Dark mode is perfect."</p>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold">
+                            DS</div>
+                        <div>
+                            <div class="font-bold text-sm">Designer</div>
+                            <div class="text-xs text-gray-500">App Store Review</div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Review 3 -->
                 <div
-                    class="bg-slate-800/50 backdrop-blur p-8 rounded-2xl border border-slate-700/50 hover:border-brand-teal/50 transition duration-300">
-                    <svg class="w-8 h-8 text-brand-teal mb-6 opacity-50" fill="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-4 3.638-4 5.849h4v10h-10z" />
-                    </svg>
-                    <p class="text-lg text-slate-200 mb-6">"Use it instead of a Pomodoro timer. Simple interface means
-                        no distractions on my phone."</p>
-                    <p class="font-bold text-brand-teal">Student</p>
+                    class="p-8 rounded-2xl bg-deep-800 border border-white/5 hover:border-cyan-400/30 transition-colors">
+                    <div class="flex text-cyan-400 mb-4">
+                        ★★★★★
+                    </div>
+                    <p class="text-gray-300 mb-6 italic">"Use it instead of a Pomodoro timer. Simple interface means no
+                        distractions on my phone."</p>
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold">
+                            ST</div>
+                        <div>
+                            <div class="font-bold text-sm">Student</div>
+                            <div class="text-xs text-gray-500">Google Play Review</div>
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </div>
     </section>
 
-    <section id="download" class="py-24 px-4 sm:px-8 lg:px-16 bg-brand-teal relative overflow-hidden">
-        <div
-            class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent scale-150">
-        </div>
-
-        <div class="container mx-auto max-w-4xl text-center relative z-10">
-            <h2 class="text-4xl sm:text-5xl font-extrabold text-slate-900 mb-8 leading-tight">
-                Start your flow today.
-            </h2>
-            <p class="text-xl text-slate-800 mb-10 font-medium">
-                Download now and reclaim your focus.<br class="sm:hidden">
-            </p>
-            <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder"
-                    class="flex items-center justify-center gap-2 bg-white text-slate-900 font-bold py-3.5 px-10 rounded-xl hover:bg-slate-100 transition shadow-xl transform hover:-translate-y-1">
-                    <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path
-                            d="M3,20.5V3.5C3,2.91,3.34,2.39,3.84,2.15L13.69,12L3.84,21.85C3.34,21.6,3,21.09,3,20.5 M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12 M21.83,12.5C22.21,12.28,22.21,11.72,21.83,11.5L18.43,9.53L15.39,12L18.43,14.47L21.83,12.5 M16.81,8.88L14.54,11.15L6.05,2.66L16.81,8.88z" />
-                    </svg>
-                    Google Play
-                </a>
-            </div>
+    <!-- Bottom CTA -->
+    <section class="py-32 relative overflow-hidden text-center z-10">
+        <div class="absolute inset-0 bg-gradient-to-b from-deep-900 to-cyan-900/20 pointer-events-none"></div>
+        <div class="max-w-4xl mx-auto px-6 relative">
+            <h2 class="text-4xl md:text-5xl font-bold mb-8">Start your flow today.</h2>
+            <p class="text-xl text-gray-400 mb-10">Join the minimalist community and reclaim your deep focus.</p>
+            <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder" target="_blank"
+                class="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-deep-900 font-bold rounded-xl hover:bg-cyan-50 transition-colors">
+                <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <path
+                        d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.36,13.08L18.92,12.25L17.5,13.65L17.53,13.66L17.5,13.65L15.22,11.37L17.54,9.04L18.92,9.85C19.7,10.29 20.24,10.96 20.36,11.75C20.39,12.24 20.21,12.7 19.86,13.05C19.86,13.05 20.36,13.08 20.36,13.08M16.81,8.88L14.54,11.15L6.05,2.66L16.81,8.88Z" />
+                </svg>
+                Download on Google Play
+            </a>
+            <p class="mt-6 text-sm text-gray-500">Free. No Ads. No Account Required.</p>
         </div>
     </section>
 
-    <footer class="bg-dark-bg-main py-12 px-4 sm:px-8 text-slate-500 text-sm border-t border-slate-800">
-        <div class="container mx-auto max-w-6xl flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-2">
-                <img src="logo.png" alt="flow logo grayscale" class="h-6 w-auto grayscale opacity-50 rounded-sm">
-                <span class="font-semibold">flow</span>
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-deep-900 py-12 text-sm text-gray-500">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-2 text-white">
+                <div
+                    class="w-6 h-6 bg-cyan-500 rounded flex items-center justify-center text-deep-900 font-bold text-xs">
+                    fl</div>
+                <span class="font-bold">flow</span>
             </div>
             <div class="flex gap-6">
-                <a href="privacy.html" class="hover:text-slate-300 transition">Privacy Policy</a>
-                <a href="terms.html" class="hover:text-slate-300 transition">Terms of Service</a>
-                <a href="mailto:wadada0420@gmail.com" class="hover:text-slate-300 transition">Contact</a>
+                <a href="#" class="hover:text-cyan-400">Privacy Policy</a>
+                <a href="#" class="hover:text-cyan-400">Terms of Service</a>
+                <a href="mailto:wadada0420@gmail.com" class="hover:text-cyan-400">Contact</a>
             </div>
             <p>
-                <a href="https://rwadada.com" class="hover:text-slate-300 transition">© 2026 Ryosuke Wada. All rights reserved.</a>
+                <a href="https://rwadada.com" class="hover:text-slate-300 transition">© 2026 Ryosuke Wada. All rights
+                    reserved.</a>
             </p>
         </div>
     </footer>
 
-    <style>
-        @keyframes float {
-            0% {
-                transform: translateY(0px) rotate(-6deg);
-            }
-
-            50% {
-                transform: translateY(-20px) rotate(-6deg);
-            }
-
-            100% {
-                transform: translateY(0px) rotate(-6deg);
-            }
-        }
-
-        /* ホバー時は回転を戻すためアニメーションを上書き */
-        .phone-mockup:hover {
-            animation: none;
-        }
-
-        /* 画面ロード時のフェードイン */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translate3d(0, 30px, 0);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate3d(0, 0, 0);
-            }
-        }
-
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .animate-fade-in-up {
-            animation: fadeInUp 0.8s ease-out;
-        }
-    </style>
 </body>
 
 </html>
