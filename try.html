@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try flow — Web Lite</title>
+    <meta name="description" content="flowのタイマーをブラウザで試す。ダウンロード不要。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bg: '#121212',
+                        surface: '#1E1E1E',
+                        teal: { DEFAULT: '#00ADB5' },
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; }
+        body { background-color: #121212; color: #fff; min-height: 100dvh; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #121212; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+        /* ── Breathing Light ──────────────────────────── */
+        .bl-wrap {
+            position: relative;
+            /* 300px on tablet+; shrinks to fit on narrow phones */
+            width: min(300px, calc(100vw - 48px));
+            height: min(300px, calc(100vw - 48px));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Outer corona that breathes */
+        .bl-corona {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle at center,
+                transparent 0%,
+                transparent 27%,
+                rgba(0, 173, 181, 0.55) 32%,
+                rgba(0, 173, 181, 0.15) 45%,
+                transparent 60%);
+            animation: coronaBreathe 5s ease-in-out infinite;
+        }
+
+        /* Ring scales with container (55% of container = same ratio as native app) */
+        .bl-ring {
+            position: absolute;
+            width: 55%;
+            height: 55%;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 173, 181, 0.85);
+        }
+
+        /* Timer: scale with viewport, capped at 36px */
+        .bl-timer {
+            position: relative;
+            z-index: 1;
+            font-size: clamp(22px, 5.5vw, 36px);
+            font-weight: 800;
+            color: #00ADB5;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.03em;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        @keyframes coronaBreathe {
+            0%   { opacity: 0.35; transform: scale(0.88); }
+            40%  { opacity: 1.00; transform: scale(1.10); }
+            100% { opacity: 0.35; transform: scale(0.88); }
+        }
+
+        /* ── Label Chip ───────────────────────────────── */
+        .lchip {
+            height: 28px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+            font-family: inherit;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .lchip.unselected {
+            width: 28px;
+            padding: 0;
+        }
+
+        .lchip.selected {
+            padding: 0 10px;
+            min-width: 28px;
+        }
+
+        /* ── Task Input (pill outline like the app) ───── */
+        .task-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 40px;
+            padding: 12px 44px 12px 20px;
+            color: #fff;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .task-input:focus { border-color: rgba(255,255,255,0.7); }
+        .task-input::placeholder { color: rgba(255,255,255,0.35); }
+
+        /* ── Suggestion dropdown ──────────────────────── */
+        #suggestions {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0; right: 0;
+            background: #1E1E1E;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            z-index: 30;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        /* ── Notes textarea ───────────────────────────── */
+        .notes-area {
+            width: 100%;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            resize: none;
+            height: 110px;
+            transition: border-color 0.2s;
+        }
+        .notes-area:focus { border-color: rgba(255,255,255,0.5); }
+        .notes-area::placeholder { color: rgba(255,255,255,0.25); }
+
+        /* ── Screen transitions ───────────────────────── */
+        .screen { display: flex; flex-direction: column; min-height: 100dvh; }
+        .screen.hidden { display: none; }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- SETUP SCREEN                                        -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="setupScreen" class="screen">
+
+        <!-- Header -->
+        <header class="sticky top-0 z-50 bg-[#121212]/80 backdrop-blur-md border-b border-white/5">
+            <div class="max-w-lg mx-auto px-6 h-16 flex items-center justify-between">
+                <a href="index.html" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Back
+                </a>
+                <div class="flex items-center gap-2">
+                    <img src="logo.png" alt="" class="w-7 h-7">
+                    <span class="font-bold">flow</span>
+                    <span class="hidden sm:inline text-xs text-gray-500 font-normal">web lite</span>
+                </div>
+                <button id="soundBtn1" onclick="toggleSound()"
+                    class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-white/10 text-gray-400 hover:text-white transition-all">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z">
+                        </path>
+                    </svg>
+                    <span class="sound-label hidden sm:inline">Deep Ocean</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Body -->
+        <div class="flex-1 flex flex-col justify-center px-6 pb-16">
+            <div class="max-w-lg mx-auto w-full space-y-5">
+
+                <!-- Section title like the app -->
+                <p class="text-white font-semibold text-lg">Current Task</p>
+
+                <!-- Task input -->
+                <div class="relative">
+                    <input id="taskInput" type="text" placeholder="Just Start." maxlength="60" autocomplete="off"
+                        class="task-input pr-10"
+                        oninput="onTaskInput()" onfocus="showSuggestions()" onblur="hideSuggestionsDelayed()">
+                    <!-- Clear button -->
+                    <button id="clearBtn" onclick="clearTask()" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    <!-- Suggestions -->
+                    <div id="suggestions" class="hidden"></div>
+                </div>
+
+                <!-- Label chips -->
+                <div id="labelChips" class="flex gap-3 items-center"></div>
+
+                <!-- START button -->
+                <button onclick="startTimer()"
+                    class="w-full h-12 bg-teal hover:brightness-110 text-[#121212] font-bold rounded-lg transition-all shadow-[0_0_20px_rgba(0,173,181,0.3)] hover:shadow-[0_0_30px_rgba(0,173,181,0.5)] text-sm tracking-wide">
+                    START
+                </button>
+
+                <!-- Today's total -->
+                <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span class="text-xs text-gray-500">Today's Focus</span>
+                    <span id="todayTotal" class="text-sm font-semibold">0h 0m</span>
+                </div>
+
+                <!-- Recent sessions -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Recent</span>
+                        <button onclick="clearHistory()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Clear</button>
+                    </div>
+                    <div id="historyList" class="space-y-2"></div>
+                    <div id="emptyHistory" class="text-center py-6 text-gray-600 text-xs">
+                        Your sessions will appear here
+                    </div>
+                </div>
+
+                <!-- Download CTA -->
+                <div class="border border-white/5 rounded-xl p-5 bg-[#1E1E1E]/40 mt-2">
+                    <p class="text-xs text-gray-500 mb-3">Want heatmaps, persistent history & mobile?</p>
+                    <div class="flex gap-3">
+                        <a href="https://play.google.com/store/apps/details?id=com.rwadada.taskrecorder" target="_blank"
+                            class="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white/10 hover:bg-white/15 rounded-lg text-xs font-medium transition-all border border-white/10">
+                            <svg class="w-3.5 h-3.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                                <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.36,13.08L18.92,12.25L17.5,13.65L17.53,13.66L17.5,13.65L15.22,11.37L17.54,9.04L18.92,9.85C19.7,10.29 20.24,10.96 20.36,11.75C20.39,12.24 20.21,12.7 19.86,13.05C19.86,13.05 20.36,13.08 20.36,13.08M16.81,8.88L14.54,11.15L6.05,2.66L16.81,8.88Z"/>
+                            </svg>
+                            Google Play
+                        </a>
+                        <a href="https://apps.apple.com/app/id6782365746" target="_blank"
+                            class="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white/10 hover:bg-white/15 rounded-lg text-xs font-medium transition-all border border-white/10">
+                            <svg class="w-3.5 h-3.5 fill-current flex-shrink-0" viewBox="0 0 24 24">
+                                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                            </svg>
+                            App Store
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- PROGRESS SCREEN                                     -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="progressScreen" class="screen hidden">
+
+        <!-- Header -->
+        <header class="sticky top-0 z-50 bg-[#121212]/80 backdrop-blur-md border-b border-white/5">
+            <div class="max-w-lg mx-auto px-4 h-14 flex items-center gap-2">
+                <button onclick="cancelTimer()" class="p-2 flex-shrink-0 text-gray-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <h1 id="progressTitle" class="flex-1 text-center font-bold text-sm truncate px-1"></h1>
+                <button id="soundBtn2" onclick="toggleSound()"
+                    class="flex items-center gap-1 px-2 py-1.5 rounded-full text-xs font-medium border border-white/10 text-gray-400 hover:text-white transition-all flex-shrink-0">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z">
+                        </path>
+                    </svg>
+                    <span class="sound-label hidden sm:inline">Deep Ocean</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Body: centered like the app's ProgressContent -->
+        <div class="flex-1 flex flex-col items-center justify-center gap-6 px-6 py-8">
+
+            <!-- Breathing Light + timer -->
+            <div class="bl-wrap">
+                <div class="bl-corona"></div>
+                <div class="bl-ring"></div>
+                <div id="timerDisplay" class="bl-timer">00:00:00</div>
+            </div>
+
+            <!-- Selected label chip -->
+            <div id="progressLabel" class="lchip selected text-[11px]"></div>
+
+            <!-- Notes from the deep -->
+            <div class="w-full max-w-sm">
+                <label class="block text-xs text-gray-500 mb-1.5">Notes</label>
+                <textarea id="notesArea" class="notes-area" placeholder="Notes from the deep..." maxlength="500"></textarea>
+            </div>
+
+            <!-- CANCEL + FINISH -->
+            <div class="flex gap-4 w-full max-w-sm">
+                <button onclick="cancelTimer()"
+                    class="flex-1 h-14 rounded-xl font-bold text-sm tracking-wider bg-[#1E1E1E] hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 transition-all">
+                    CANCEL
+                </button>
+                <button onclick="finishTimer()"
+                    class="flex-1 h-14 rounded-xl font-bold text-sm tracking-wider bg-teal hover:brightness-110 text-[#121212] shadow-[0_0_20px_rgba(0,173,181,0.3)] hover:shadow-[0_0_30px_rgba(0,173,181,0.5)] transition-all">
+                    FINISH
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- JAVASCRIPT                                          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <script>
+        // ── Labels (matching the real app) ─────────────────
+        const LABELS = [
+            { hex: '#00ADB5', name: 'Work' },
+            { hex: '#FF7043', name: 'Study' },
+            { hex: '#9C27B0', name: 'Personal' },
+            { hex: '#EC407A', name: 'Health' },
+        ];
+
+        let selectedLabel = null; // null = none selected
+        let timerInterval = null;
+        let startTime = null;
+        let audioCtx = null;
+        let noiseSource = null;
+        let gainNode = null;
+        let soundOn = false;
+        let suggestHideTimer = null;
+
+        // ── Init ────────────────────────────────────────────
+        renderLabelChips();
+        renderHistory();
+        updateTodayTotal();
+
+        // ── Label Chips ─────────────────────────────────────
+        function renderLabelChips() {
+            const el = document.getElementById('labelChips');
+            el.innerHTML = LABELS.map(l => {
+                const isSel = selectedLabel?.hex === l.hex;
+                const textColor = contrastColor(l.hex);
+                return `<button
+                    class="lchip ${isSel ? 'selected' : 'unselected'}"
+                    style="background-color:${l.hex}; color:${textColor};"
+                    onclick="selectLabel('${l.hex}')">
+                    ${isSel ? l.name : ''}
+                </button>`;
+            }).join('');
+        }
+
+        function selectLabel(hex) {
+            if (selectedLabel?.hex === hex) {
+                selectedLabel = null;
+            } else {
+                selectedLabel = LABELS.find(l => l.hex === hex);
+            }
+            renderLabelChips();
+        }
+
+        function contrastColor(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5 ? '#000' : '#fff';
+        }
+
+        // ── Timer ────────────────────────────────────────────
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(tick, 500);
+
+            // Set progress screen title
+            const title = document.getElementById('taskInput').value.trim() || 'Untitled';
+            document.getElementById('progressTitle').textContent = title;
+
+            // Set label chip in progress screen
+            const lel = document.getElementById('progressLabel');
+            if (selectedLabel) {
+                lel.style.backgroundColor = selectedLabel.hex;
+                lel.style.color = contrastColor(selectedLabel.hex);
+                lel.textContent = selectedLabel.name;
+                lel.classList.remove('hidden');
+            } else {
+                lel.classList.add('hidden');
+            }
+
+            document.getElementById('notesArea').value = '';
+
+            // Switch screens
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('progressScreen').classList.remove('hidden');
+
+            tick();
+        }
+
+        function cancelTimer() {
+            if (!confirm('Discard this session?')) return;
+            stopAndReset();
+            switchToSetup();
+        }
+
+        function finishTimer() {
+            const duration = Date.now() - startTime;
+            const task = document.getElementById('progressTitle').textContent;
+            const notes = document.getElementById('notesArea').value.trim();
+
+            if (duration >= 3000) {
+                addToHistory({
+                    task,
+                    notes,
+                    duration,
+                    color: selectedLabel?.hex || null,
+                    labelName: selectedLabel?.name || null,
+                    startedAt: startTime,
+                    date: new Date().toDateString(),
+                });
+            }
+
+            stopAndReset();
+            switchToSetup();
+            renderHistory();
+            updateTodayTotal();
+        }
+
+        function stopAndReset() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            startTime = null;
+            document.getElementById('timerDisplay').textContent = '00:00:00';
+        }
+
+        function switchToSetup() {
+            document.getElementById('progressScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        }
+
+        function tick() {
+            if (!startTime) return;
+            document.getElementById('timerDisplay').textContent = formatTime(Date.now() - startTime);
+        }
+
+        function formatTime(ms) {
+            const s = Math.floor(ms / 1000);
+            return `${pad(Math.floor(s / 3600))}:${pad(Math.floor((s % 3600) / 60))}:${pad(s % 60)}`;
+        }
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        function formatDuration(ms) {
+            const m = Math.floor(ms / 60000);
+            if (m < 1) return `${Math.floor(ms / 1000)}s`;
+            const h = Math.floor(m / 60);
+            return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+        }
+
+        // ── Task Input ───────────────────────────────────────
+        function onTaskInput() {
+            const val = document.getElementById('taskInput').value;
+            document.getElementById('clearBtn').classList.toggle('hidden', val.length === 0);
+            showSuggestions();
+        }
+
+        function clearTask() {
+            document.getElementById('taskInput').value = '';
+            document.getElementById('clearBtn').classList.add('hidden');
+            document.getElementById('suggestions').classList.add('hidden');
+        }
+
+        function showSuggestions() {
+            if (suggestHideTimer) { clearTimeout(suggestHideTimer); suggestHideTimer = null; }
+            const val = document.getElementById('taskInput').value.toLowerCase();
+            const tasks = getUniqueTasks().filter(t => !val || t.toLowerCase().includes(val));
+
+            const el = document.getElementById('suggestions');
+            if (tasks.length === 0) { el.classList.add('hidden'); return; }
+
+            el.innerHTML = tasks.map(t => `
+                <button class="w-full text-left px-4 py-3 text-sm text-gray-200 hover:bg-white/10 transition-colors border-b border-white/5 last:border-0"
+                    onmousedown="pickSuggestion(this.dataset.v)" data-v="${esc(t)}">${esc(t)}</button>
+            `).join('');
+            el.classList.remove('hidden');
+        }
+
+        function hideSuggestionsDelayed() {
+            suggestHideTimer = setTimeout(() => document.getElementById('suggestions').classList.add('hidden'), 150);
+        }
+
+        function pickSuggestion(val) {
+            const input = document.getElementById('taskInput');
+            input.value = val;
+            document.getElementById('clearBtn').classList.remove('hidden');
+            document.getElementById('suggestions').classList.add('hidden');
+        }
+
+        // ── History ──────────────────────────────────────────
+        function getHistory() {
+            try { return JSON.parse(localStorage.getItem('flow_web_history') || '[]'); }
+            catch { return []; }
+        }
+
+        function addToHistory(entry) {
+            const h = getHistory();
+            h.unshift(entry);
+            localStorage.setItem('flow_web_history', JSON.stringify(h.slice(0, 30)));
+        }
+
+        function clearHistory() {
+            localStorage.removeItem('flow_web_history');
+            renderHistory();
+            updateTodayTotal();
+        }
+
+        function getUniqueTasks() {
+            return [...new Set(getHistory().map(h => h.task).filter(Boolean))].slice(0, 6);
+        }
+
+        function renderHistory() {
+            const history = getHistory();
+            const list = document.getElementById('historyList');
+            const empty = document.getElementById('emptyHistory');
+
+            if (history.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            list.innerHTML = history.slice(0, 8).map(entry => `
+                <div class="flex items-center gap-3 p-3 rounded-xl bg-[#1E1E1E]/60 border border-white/5">
+                    ${entry.color
+                        ? `<span class="lchip selected text-[10px] flex-shrink-0"
+                              style="background-color:${entry.color};color:${contrastColor(entry.color)}">
+                              ${esc(entry.labelName || '')}
+                           </span>`
+                        : `<span class="w-2 h-2 rounded-full bg-gray-600 flex-shrink-0"></span>`}
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium truncate">${esc(entry.task)}</div>
+                        <div class="text-xs text-gray-500">${new Date(entry.startedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+                    </div>
+                    <div class="text-sm text-gray-400 font-medium flex-shrink-0">${formatDuration(entry.duration)}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateTodayTotal() {
+            const today = new Date().toDateString();
+            const ms = getHistory().filter(h => h.date === today).reduce((s, h) => s + h.duration, 0);
+            const m = Math.floor(ms / 60000);
+            document.getElementById('todayTotal').textContent = `${Math.floor(m / 60)}h ${m % 60}m`;
+        }
+
+        function esc(s) {
+            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        // ── Sound ─────────────────────────────────────────────
+        function toggleSound() {
+            soundOn ? stopSound() : startSound();
+        }
+
+        function startSound() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+
+                const bufSize = 2 * audioCtx.sampleRate;
+                const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+                const data = buf.getChannelData(0);
+                let last = 0;
+                for (let i = 0; i < bufSize; i++) {
+                    const w = Math.random() * 2 - 1;
+                    data[i] = (last + 0.02 * w) / 1.02;
+                    last = data[i];
+                    data[i] *= 3.5;
+                }
+
+                if (noiseSource) { try { noiseSource.stop(); } catch(e){} }
+                noiseSource = audioCtx.createBufferSource();
+                noiseSource.buffer = buf;
+                noiseSource.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 350;
+
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0;
+
+                noiseSource.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                noiseSource.start();
+                gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 1.5);
+
+                soundOn = true;
+                updateSoundUI();
+            } catch(e) { console.error('Audio:', e); }
+        }
+
+        function stopSound() {
+            if (gainNode && audioCtx) {
+                gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+                setTimeout(() => { try { noiseSource?.stop(); } catch(e){} noiseSource = null; }, 600);
+            }
+            soundOn = false;
+            updateSoundUI();
+        }
+
+        function updateSoundUI() {
+            document.querySelectorAll('#soundBtn1, #soundBtn2').forEach(btn => {
+                if (soundOn) {
+                    btn.classList.add('border-teal/50', 'text-teal');
+                    btn.classList.remove('border-white/10', 'text-gray-400');
+                } else {
+                    btn.classList.remove('border-teal/50', 'text-teal');
+                    btn.classList.add('border-white/10', 'text-gray-400');
+                }
+            });
+            document.querySelectorAll('.sound-label').forEach(el => {
+                el.textContent = soundOn ? 'Playing...' : 'Deep Ocean';
+            });
+        }
+    </script>
+
+</body>
+</html>
